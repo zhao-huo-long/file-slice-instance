@@ -49,23 +49,36 @@ function FileUpload(props: Props) {
       upload.current?.stop()
       onClose()
     }} cancelText="取消" okText="上传" onOk={onOk} visible={props.vis}>
-    <Upload 
-      onChange={(e) => file.current = e.file as unknown as File} 
-      maxCount={1} 
-      beforeUpload={() => false}>
-      <Button>选择文件</Button>
-    </Upload>
+      <div>
+        演示服务器带宽小, 请选择10m左右大小的做测试文件
+      </div>
+      <Upload 
+        onChange={(e) =>{ 
+          setPer(0)
+          upload.current?.stop()
+          file.current = e.file as unknown as File
+        }}
+        onDrop={() =>{ 
+          setPer(0)
+          file.current = undefined 
+        }}
+        maxCount={1} 
+        showUploadList={{
+          showRemoveIcon: false
+        }}
+        beforeUpload={() => false}>
+        <Button>选择文件</Button>
+      </Upload>
     <Progress percent={percent} status="active" />
   </Modal>
 }
-
 
 function App() {
   const [vis, setVis] = useState(false)
   return (
     <div className="App">
       <Button onClick={() => setVis(!vis)} >上传</Button>
-      <FileUpload vis={vis} onClose={() => setVis(false)} />
+      { vis && <FileUpload vis={vis} onClose={() => setVis(false)} /> }
     </div>
   )
 }
