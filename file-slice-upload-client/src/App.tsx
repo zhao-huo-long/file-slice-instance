@@ -1,4 +1,3 @@
-import './App.css'
 import { Button, Upload, Modal, Progress, message } from 'antd'
 import { useRef, useState } from 'react'
 import fileSliceUpload from 'file-slice-upload'
@@ -27,7 +26,7 @@ function FileUpload(props: Props) {
           formData.append('hash', hash)
           formData.append('all', `${chunks.length}`)
           const res = await axios
-            .post('http://localhost:9876/sendChunkFile', formData)
+            .post('http://120.25.173.175:9876/sendChunkFile', formData)
           return res.data.success
         })
         .on('progress', (e) => setPer(Math.ceil(30 + 49 * e.done / e.all)))
@@ -37,10 +36,10 @@ function FileUpload(props: Props) {
           formData.append('fileName', file.current!.name)
           formData.append('all', `${chunks.length}`)
           const res = await axios
-            .post('http://localhost:9876/mergeChunkFile', formData)
+            .post('http://120.25.173.175:9876/mergeChunkFile', formData)
           setPer(100)
           message.success('上传成功')
-          window.open('http://localhost:9876/getFile/' + res.data.fileName)
+          window.open('http://120.25.173.175:9876/getFile/' + res.data.fileName)
         })
         .start()
     }
