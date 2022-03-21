@@ -2,51 +2,59 @@ import { Button, Upload, Modal, Progress, message } from 'antd'
 import { useRef, useState } from 'react'
 import fileSliceUpload from 'file-slice-upload'
 import axios from 'axios'
-import md5 from './md5';
+import type { FileSliceUpload } from 'file-slice-upload'
 
 type Props = {
   vis: boolean,
   onClose: () => void
 }
 
+const serverHost = 'http://120.25.173.175:9876'
+
 function FileUpload(props: Props) {
-  const { onClose, vis } = props
+  const { onClose } = props
   const file = useRef<File>()
-  const upload = useRef<any>()
+  const upload = useRef<FileSliceUpload>()
   const [percent, setPer] = useState(0)
   const onOk = async () => {
     if (file.current) {
-      const hash = await md5(file.current, (p) => setPer(Math.ceil(30 * p)))
-      if(!file.current) return 
-      upload.current = fileSliceUpload(1)
-        .file(file.current, '1M')
-        .uploadFunc(async(chunk, index, chunks) => {
+      console.log(file.current)
+      upload.current = fileSliceUpload(1024 * 1024)
+        .setFile(file.current)
+        .setAjax(async({chunk, md5, all}) => {
           const formData = new FormData()
           formData.append('chunkFile', chunk)
-          formData.append('hash', hash)
-          formData.append('all', `${chunks.length}`)
+          formData.append('hash', md5)
+          formData.append('all', `${all}`)
           const res = await axios
-            .post('http://120.25.173.175:9876/sendChunkFile', formData)
+            .post(`${serverHost}/sendChunkFile`, formData)
           return res.data.success
         })
-        .on('progress', (e) => setPer(Math.ceil(30 + 49 * e.done / e.all)))
-        .on('finish', async ({ chunks }) => {
+        .on('progress', (e) => {
+          if(e.type === 'md5'){
+            setPer(Math.ceil(30 * e.done / e.all))
+          }
+          if(e.type === 'upload'){
+            setPer(Math.ceil(30 + 49 * e.done / e.all))
+          }
+        })
+        .on('finish', async ({ md5, file, all }) => {
           const formData = new FormData()
-          formData.append('hash', hash)
-          formData.append('fileName', file.current!.name)
-          formData.append('all', `${chunks.length}`)
+          formData.append('hash', md5)
+          formData.append('fileName', file.name)
+          formData.append('all', `${all}`)
           const res = await axios
-            .post('http://120.25.173.175:9876/mergeChunkFile', formData)
+            .post(`${serverHost}/mergeChunkFile`, formData)
           setPer(100)
           message.success('上传成功')
-          window.open('http://120.25.173.175:9876/getFile/' + res.data.fileName)
+          window.open(`${serverHost}/getFile/` + res.data.fileName)
         })
-        .start()
+      upload.current.start()
     }
   }
   return <Modal onCancel={() => {
       file.current = undefined
-      upload.current?.stop()
+      upload.current?.cancel()
       onClose()
     }} cancelText="取消" okText="上传" onOk={onOk} visible={props.vis}>
       <div>
@@ -55,7 +63,7 @@ function FileUpload(props: Props) {
       <Upload 
         onChange={(e) =>{ 
           setPer(0)
-          upload.current?.stop()
+          upload.current?.cancel()
           file.current = e.file as unknown as File
         }}
         onDrop={() =>{ 
